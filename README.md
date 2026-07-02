@@ -1,8 +1,7 @@
 # Vector - Python SDK
 
-This is a fork of the original Anki Vector Python SDK. 
-Since Anki is down and no longer supporting the SDK and the new owner [DDL](https://www.digitaldreamlabs.com/) is more likely working on firmware updates at the moment,
-I just started this fork as an unofficial version to keep things running for now.  
+This is a fork of the fork of the original Anki Vector Python SDK. *After gettng my own Vector long after Anki stopped
+caring for it, I used AI to restore as much functionality as possible while staing compleatly cloud free. This fork uses `wire-pod` to communicate with the robot.* Thank you to the `ikkez` that made the first fork. This is fully unofficial and mostly just for my own amusement.
 
 ![Vector](docs/source/images/vector-sdk-alpha.jpg)
 
