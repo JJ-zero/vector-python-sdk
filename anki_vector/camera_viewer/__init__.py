@@ -23,12 +23,28 @@ It also depends on the Pillow library for image processing.
 
 import multiprocessing as mp
 import sys
-import tkinter as tk
 
 try:
-    from PIL import ImageTk
-except ImportError:
-    sys.exit("Cannot import from PIL: Do `pip3 install --user Pillow` to install")
+    import tkinter as tk
+    _HAS_TK = True
+except ModuleNotFoundError:
+    tk = None
+    _HAS_TK = False
+
+try:
+    import cv2
+    import numpy as np
+    _HAS_CV2 = True
+except ModuleNotFoundError:
+    cv2 = None
+    np = None
+    _HAS_CV2 = False
+
+if _HAS_TK:
+    try:
+        from PIL import ImageTk
+    except ImportError:
+        sys.exit("Cannot import from PIL ImageTk support: Do `pip3 install --user Pillow` to install")
 
 
 class TkCameraViewer:  # pylint: disable=too-few-public-methods
@@ -62,7 +78,7 @@ class TkCameraViewer:  # pylint: disable=too-few-public-methods
         self.event.set()
         self.tk_root.destroy()
 
-    def _resize_window(self, evt: tk.Event) -> None:
+    def _resize_window(self, evt) -> None:
         """Handle window resize event.
 
         :param evt: A Tkinter window event (keyboard, mouse events, etc).
@@ -76,24 +92,53 @@ class TkCameraViewer:  # pylint: disable=too-few-public-methods
             image = self.queue.get(True, timeout=self.timeout)
         except:
             return
-        self.width, self.height = image.size
-        while image:
+
+
+class OpenCVCameraViewer:  # pylint: disable=too-few-public-methods
+    """OpenCV-based camera viewer fallback for Python builds without tkinter."""
+
+    def __init__(self, queue: mp.Queue, event: mp.Event, overlays: list = None, timeout: float = 10.0):
+        self.queue = queue
+        self.event = event
+        self.overlays = overlays
+        self.timeout = timeout
+        self.window_name = "Vector Camera Feed"
+
+    def _to_bgr(self, image):
+        frame = np.array(image)
+        return cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+
+    def draw_frame(self) -> None:
+        cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
+        try:
+            image = self.queue.get(True, timeout=self.timeout)
+        except Exception:
+            cv2.destroyWindow(self.window_name)
+            return
+
+        while image is not None:
             if self.event.is_set():
                 break
+
             if self.overlays:
                 for overlay in self.overlays:
                     overlay.apply_overlay(image)
-            if (self.width, self.height) != image.size:
-                image = image.resize((self.width, self.height))
-            tk_image = ImageTk.PhotoImage(image)
-            self.label.config(image=tk_image)
-            self.label.image = tk_image
-            self.tk_root.update_idletasks()
-            self.tk_root.update()
+
+            cv2.imshow(self.window_name, self._to_bgr(image))
+
+            key = cv2.waitKey(1) & 0xFF
+            if key == 27 or key == ord('q'):
+                break
+
+            if cv2.getWindowProperty(self.window_name, cv2.WND_PROP_VISIBLE) < 1:
+                break
+
             try:
                 image = self.queue.get(True, timeout=self.timeout)
-            except:
-                return
+            except Exception:
+                break
+
+        cv2.destroyWindow(self.window_name)
 
 
 def main(queue: mp.Queue, event: mp.Event, overlays: list = None, timeout: float = 10.0, force_on_top: bool = False) -> None:
@@ -108,8 +153,16 @@ def main(queue: mp.Queue, event: mp.Event, overlays: list = None, timeout: float
     """
 
     try:
-        tk_viewer = TkCameraViewer(queue, event, overlays, timeout, force_on_top)
-        tk_viewer.draw_frame()
+        if _HAS_TK:
+            tk_viewer = TkCameraViewer(queue, event, overlays, timeout, force_on_top)
+            tk_viewer.draw_frame()
+        elif _HAS_CV2:
+            cv_viewer = OpenCVCameraViewer(queue, event, overlays, timeout)
+            cv_viewer.draw_frame()
+        else:
+            raise RuntimeError(
+                "No GUI backend available for camera viewer. Install tkinter-enabled Python or install opencv-python."
+            )
     except TimeoutError:
         pass
     except KeyboardInterrupt:

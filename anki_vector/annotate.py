@@ -38,6 +38,7 @@ __all__ = ['DEFAULT_OBJECT_COLORS',
 
 from enum import Enum
 import collections
+from collections.abc import Iterable as IterableABC
 import functools
 import sys
 from typing import Callable, Iterable, Tuple, Union
@@ -164,7 +165,17 @@ class ImageText:  # pylint: disable=too-few-public-methods
         :param bounds(top_left_x, top_left_y, bottom_right_x, bottom_right_y): bounding box
         """
         (bx1, by1, bx2, by2) = bounds
-        text_width, text_height = draw.textsize(self.text, font=self.font)
+        if hasattr(draw, "multiline_textbbox"):
+            left, top, right, bottom = draw.multiline_textbbox((0, 0), self.text,
+                                                                font=self.font,
+                                                                align=self.align,
+                                                                spacing=self.line_spacing)
+            text_width, text_height = right - left, bottom - top
+        elif hasattr(draw, "textbbox"):
+            left, top, right, bottom = draw.textbbox((0, 0), self.text, font=self.font)
+            text_width, text_height = right - left, bottom - top
+        else:
+            text_width, text_height = draw.textsize(self.text, font=self.font)
 
         if self.position.value == AnnotationPosition.CENTER_CENTER.value:
             y = by1 + (by2 - by1 - (text_height))/2
@@ -225,7 +236,7 @@ def add_img_box_to_image(draw: ImageDraw.ImageDraw, box: util.ImageRect, color: 
     x2, y2 = (box.x_top_left + box.width), (box.y_top_left + box.height)
     draw.rectangle([x1, y1, x2, y2], outline=color)
     if text is not None:
-        if isinstance(text, collections.Iterable):
+        if isinstance(text, IterableABC):
             for t in text:
                 t.render(draw, (x1, y1, x2, y2))
         else:

@@ -73,7 +73,13 @@ class ViewerComponent(util.Component):
         :param timeout: Render video for the given time. (Renders forever, if timeout not given.)
         :param force_on_top: Specifies whether the window should be forced on top of all others.
         """
-        from . import camera_viewer
+        try:
+            from . import camera_viewer
+        except ModuleNotFoundError as exc:
+            if exc.name in ("tkinter", "_tkinter"):
+                self.logger.warning("Camera viewer disabled: tkinter is not available in this Python environment.")
+                return
+            raise
 
         self.robot.camera.init_camera_feed()
 
