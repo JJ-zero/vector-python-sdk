@@ -1,0 +1,3 @@
+- Name: Vector-S7Y5
+- IP: 192.168.1.186
+- Serial: 0dd1cabe

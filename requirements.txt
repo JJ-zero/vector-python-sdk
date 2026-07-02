@@ -1,7 +1,8 @@
 aiogrpc>=1.4
+protobuf==3.19.0
+numpy>=1.11
+Pillow>=3.3
 cryptography
 flask
 googleapis-common-protos
-numpy>=1.11
-Pillow>=3.3
 requests

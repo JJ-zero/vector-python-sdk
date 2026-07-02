@@ -129,7 +129,7 @@ class Robot:
         config = config if config is not None else {}
         config = {**util.read_configuration(serial, name, self.logger), **config}
 
-        if name is not None:
+        if name is not None and ip is None:
             vector_mdns = VectorMdns.find_vector(name)
 
             if vector_mdns is not None:
@@ -659,13 +659,17 @@ class Robot:
         self._camera = camera.CameraComponent(self)
 
         if self.cache_animation_lists:
-            # Load animation triggers and animations so they are ready to play when requested
-            anim_request = self._anim.load_animation_list()
-            if isinstance(anim_request, concurrent.futures.Future):
-                anim_request.result()
-            anim_trigger_request = self._anim.load_animation_trigger_list()
-            if isinstance(anim_trigger_request, concurrent.futures.Future):
-                anim_trigger_request.result()
+            try:
+                # Load animation triggers and animations so they are ready to play when requested.
+                # Some local/Wire-Pod setups do not respond to these optional calls reliably.
+                anim_request = self._anim.load_animation_list()
+                if isinstance(anim_request, concurrent.futures.Future):
+                    anim_request.result()
+                anim_trigger_request = self._anim.load_animation_trigger_list()
+                if isinstance(anim_trigger_request, concurrent.futures.Future):
+                    anim_trigger_request.result()
+            except Exception as exc:  # pylint: disable=broad-except
+                self.logger.warning("Skipping animation list preload: %s", exc)
 
         # TODO enable audio feed when ready
 

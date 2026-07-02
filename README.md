@@ -33,6 +33,76 @@ Upgrade with
 pip install ikkez_vector --upgrade
 ```
 
+## Local / Wire-Pod Setup (No Anki Cloud)
+
+This fork is configured for local usage without Anki cloud.
+
+Run local setup (GUID is auto-read from Wire-Pod bot info):
+
+```bash
+python -m anki_vector.configure \
+	--serial <serial> \
+	--name <Vector-XXXX> \
+	--ip <robot_ip> \
+	--wirepod-root <path_to_wire-pod>
+```
+
+If auto-detection fails, provide exact Wire-Pod paths:
+
+```bash
+python -m anki_vector.configure \
+	--serial <serial> \
+	--name <Vector-XXXX> \
+	--ip <robot_ip> \
+	--wirepod-bot-info <path_to_botSdkInfo.json> \
+	--wirepod-session-certs <path_to_session-certs>
+```
+
+If runtime files are not local on this machine, use Wire-Pod API fallback:
+
+```bash
+python -m anki_vector.configure \
+	--serial <serial> \
+	--name <Vector-XXXX> \
+	--ip <robot_ip> \
+	--wirepod-host <wirepod_host> \
+	--wirepod-port 8080
+```
+
+The configure command reads:
+
+- `http://<wirepod_host>:8080/api-sdk/get_sdk_info` for GUID info
+- `http://<wirepod_host>:8080/session-certs/<serial>` for cert data
+
+You can override GUID/cert manually if needed:
+
+```bash
+python -m anki_vector.configure \
+	--serial <serial> \
+	--name <Vector-XXXX> \
+	--ip <robot_ip> \
+	--cert <path_to_robot_cert.pem> \
+	--guid <robot_guid>
+```
+
+Where GUID is stored in Wire-Pod:
+
+- `chipper/jdocs/botSdkInfo.json`
+- field `robots[].guid` for per-robot token
+- fallback field `global_guid`
+
+Where cert is stored in Wire-Pod:
+
+- `chipper/session-certs/<serial>`
+
+If no cert is found in Wire-Pod storage, configure fetches the cert directly from `robot_ip:443`.
+
+After setup, run a quick connectivity check:
+
+```bash
+python scripts/test_local_connection.py --serial <serial>
+```
+
 ### Changelog
 
 To see all changes and updates being made to the SDK, please go to [Releases](https://github.com/ikkez/vector-python-sdk/releases)
