@@ -306,5 +306,4 @@ if __name__ == '__main__':
                            enable_nav_map_feed=False) as robotInstance:
         robotInstance.viewer_3d.show(False)
         robotInstance.behavior.drive_off_charger()
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(map_explorer(robotInstance))
+        asyncio.run(map_explorer(robotInstance))

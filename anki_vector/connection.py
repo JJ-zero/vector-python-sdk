@@ -746,7 +746,10 @@ def on_connection_thread(log_messaging: bool = True, requires_control: bool = Tr
                 if not conn.requires_behavior_control:
                     raise VectorControlException(func.__name__)
                 logger.info(f"Delaying {func.__name__} until behavior control is granted")
-                await asyncio.wait([conn.control_granted_event.wait()], timeout=10)
+                try:
+                    await asyncio.wait_for(conn.control_granted_event.wait(), timeout=10)
+                except asyncio.TimeoutError:
+                    pass
             message = args[1:]
             outgoing = message if log_messaging else "size = {} bytes".format(sys.getsizeof(message))
             logger.debug(f'Outgoing {func.__name__}: {outgoing}')

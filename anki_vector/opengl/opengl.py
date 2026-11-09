@@ -43,9 +43,8 @@ __all__ = ['Camera', 'DynamicTexture', 'MaterialLibrary', 'MeshData', 'MeshFace'
 
 import math
 import sys
+import importlib.resources
 from typing import List, Dict
-
-from pkg_resources import resource_stream
 
 from anki_vector import util
 
@@ -120,8 +119,7 @@ if not _verify_glut_init():
 
 
 class ResourceManager():
-    """Handles returning file resources by keys. The current implementation delegates to resource_stream
-    directly.
+    """Handles returning file resources by keys.
 
     :param context_id: Key used for identifying this context
     """
@@ -137,14 +135,15 @@ class ResourceManager():
     def load(self, *args: str):
         """Loads a resource given a groups of key arguments.
 
-        Since the resource_stream path is non_stantard with os.path.join, this resolve is encapsulated inside
+        Since the resource path is non_stantard with os.path.join, this resolve is encapsulated inside
         the resource manager. The context that these resources are files on disk is similarly encapsulated.
         All client classes only need match keys with returned data.
 
         :param args: string keys for identifying the asset.
         """
-        resource_path = '/'.join(map(str, args))  # Note: Deliberately not os.path.join, for use with pkg_resources
-        return resource_stream(self._context_id, resource_path)
+        # Deliberately not os.path.join for package-relative resource paths.
+        resource_path = '/'.join(map(str, args))
+        return importlib.resources.files(self._context_id).joinpath(resource_path).open('rb')
 
 
 class DynamicTexture:
